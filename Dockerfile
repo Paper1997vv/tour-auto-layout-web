@@ -8,6 +8,7 @@ WORKDIR /app
 
 COPY Package.swift Package.resolved ./
 COPY Sources ./Sources
+COPY Tests ./Tests
 COPY Public ./Public
 
 RUN swift build -c release
