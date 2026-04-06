@@ -1,6 +1,10 @@
 import Foundation
 import ZIPFoundation
 
+#if canImport(FoundationXML)
+import FoundationXML
+#endif
+
 struct DocxPackageReader {
     func loadSourceDocument(from normalizedDocument: NormalizedDocument) throws -> SourceDocument {
         let archive = try Archive(url: normalizedDocument.normalizedDocxURL, accessMode: .read)

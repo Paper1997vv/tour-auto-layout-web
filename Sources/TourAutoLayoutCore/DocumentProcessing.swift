@@ -1,6 +1,10 @@
 import Foundation
 import ZIPFoundation
 
+#if canImport(FoundationXML)
+import FoundationXML
+#endif
+
 public protocol ProcessRunning: Sendable {
     func run(executableURL: URL, arguments: [String], currentDirectoryURL: URL?) throws
 }
