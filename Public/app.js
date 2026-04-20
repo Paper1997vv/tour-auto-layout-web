@@ -1,6 +1,6 @@
 const state = {
   config: null,
-  jobId: window.localStorage.getItem("tour_job_id") || null,
+  jobId: null,
   pollHandle: null,
 };
 
@@ -15,6 +15,7 @@ const submitError = document.getElementById("submit-error");
 const templateInput = document.getElementById("template-input");
 const documentsInput = document.getElementById("documents-input");
 const templateName = document.getElementById("template-name");
+const documentsSummary = document.getElementById("documents-summary");
 const documentsList = document.getElementById("documents-list");
 const submitButton = document.getElementById("submit-button");
 const limitsText = document.getElementById("limits-text");
@@ -25,7 +26,7 @@ const results = document.getElementById("results");
 const batchDownload = document.getElementById("batch-download");
 
 templateInput.addEventListener("change", () => {
-  templateName.textContent = templateInput.files?.[0]?.name || "未选择";
+  templateName.textContent = templateInput.files?.[0]?.name || "未选择模板图";
 });
 
 documentsInput.addEventListener("change", () => {
@@ -66,11 +67,14 @@ jobForm.addEventListener("submit", async (event) => {
   }
 
   submitButton.disabled = true;
+  resetCurrentJobView();
+  jobPanel.classList.remove("hidden");
+  jobStatusText.textContent = "状态：正在提交，完成 0%";
 
   try {
     const formData = new FormData();
     formData.append("templateImage", templateFile);
-    documentFiles.forEach((file) => formData.append("documents", file));
+    documentFiles.forEach((file) => formData.append("documents[]", file));
 
     const response = await fetch("/api/jobs", {
       method: "POST",
@@ -84,11 +88,10 @@ jobForm.addEventListener("submit", async (event) => {
 
     const payload = await response.json();
     state.jobId = payload.jobId;
-    window.localStorage.setItem("tour_job_id", payload.jobId);
-    jobPanel.classList.remove("hidden");
     await pollJob();
     startPolling();
   } catch (error) {
+    jobPanel.classList.add("hidden");
     submitError.textContent = error.message || "任务创建失败。";
     submitError.classList.remove("hidden");
   } finally {
@@ -100,7 +103,7 @@ async function bootstrap() {
   const response = await fetch("/api/config");
   state.config = await response.json();
 
-  limitsText.textContent = `建议单次上传总大小不超过 ${state.config.maxUploadSizeMB}MB。`;
+  limitsText.textContent = `单次上传总大小建议不超过 ${state.config.maxUploadSizeMB}MB`;
 
   if (state.config.requiresPassword && !state.config.authenticated) {
     loginPanel.classList.remove("hidden");
@@ -111,14 +114,7 @@ async function bootstrap() {
 
   loginPanel.classList.add("hidden");
   composerPanel.classList.remove("hidden");
-
-  if (state.jobId) {
-    jobPanel.classList.remove("hidden");
-    await pollJob();
-    startPolling();
-  } else {
-    jobPanel.classList.add("hidden");
-  }
+  jobPanel.classList.add("hidden");
 }
 
 function renderSelectedDocuments() {
@@ -126,17 +122,31 @@ function renderSelectedDocuments() {
   const files = Array.from(documentsInput.files || []);
 
   if (files.length === 0) {
+    documentsSummary.textContent = "未选择文档";
     const item = document.createElement("li");
-    item.textContent = "未选择文档";
+    item.textContent = "可一次选择多份 .doc / .docx 文档";
+    item.className = "file-item empty";
     documentsList.appendChild(item);
     return;
   }
 
+  documentsSummary.textContent = `已选择 ${files.length} 份文档`;
+
   files.forEach((file) => {
     const item = document.createElement("li");
+    item.className = "file-item";
     item.textContent = file.name;
     documentsList.appendChild(item);
   });
+}
+
+function resetCurrentJobView() {
+  stopPolling();
+  progressFill.style.width = "0%";
+  batchDownload.classList.add("hidden");
+  batchDownload.removeAttribute("href");
+  jobMeta.textContent = "正在创建任务…";
+  results.innerHTML = "";
 }
 
 async function pollJob() {
@@ -171,7 +181,7 @@ function stopPolling() {
 function renderJob(payload) {
   progressFill.style.width = `${Math.round(payload.progress * 100)}%`;
   jobStatusText.textContent = `状态：${translateOverallStatus(payload.status)}，完成 ${Math.round(payload.progress * 100)}%`;
-  jobMeta.textContent = `任务 ID：${payload.jobId}，创建时间：${payload.createdAt}`;
+  jobMeta.textContent = `任务 ID：${payload.jobId} · 创建时间：${payload.createdAt}`;
 
   if (payload.status === "completed") {
     batchDownload.href = `/api/jobs/${payload.jobId}/download.zip`;
@@ -185,15 +195,15 @@ function renderJob(payload) {
     const card = document.createElement("article");
     card.className = "result-card";
     card.innerHTML = `
-      <h3>${escapeHtml(file.filename)}</h3>
-      <p><span class="badge ${file.status}">${translateStatus(file.status)}</span></p>
+      <div class="result-top">
+        <h3>${escapeHtml(file.filename)}</h3>
+        <span class="badge ${file.status}">${translateStatus(file.status)}</span>
+      </div>
       <p class="card-meta">${file.outputFilename ? `输出：${escapeHtml(file.outputFilename)}` : "等待生成结果"}</p>
       ${file.durationSeconds ? `<p class="card-meta">耗时：${file.durationSeconds.toFixed(2)} 秒</p>` : ""}
       ${file.errorMessage ? `<p class="message error">${escapeHtml(file.errorMessage)}</p>` : ""}
       ${file.warnings?.length ? `<p class="message">${file.warnings.map(escapeHtml).join("<br>")}</p>` : ""}
-      <div class="card-actions">
-        ${file.downloadURL ? `<a class="secondary-link" href="${file.downloadURL}" target="_blank" rel="noreferrer">下载文件</a>` : ""}
-      </div>
+      ${file.downloadURL ? `<div class="card-actions"><a class="secondary-link" href="${file.downloadURL}" target="_blank" rel="noreferrer">下载文件</a></div>` : ""}
     `;
     results.appendChild(card);
   });

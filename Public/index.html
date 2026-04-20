@@ -9,16 +9,12 @@
 <body>
   <main class="app-shell">
     <section class="hero">
-      <p class="eyebrow">TourAutoLayout Web</p>
       <h1>旅游行程自动排版</h1>
-      <p class="hero-copy">上传模板图和 Word 文档，服务器自动生成保留正文内容的 Word 成品。</p>
+      <p class="hero-copy">上传模板图与word文档，自动生成保留正文内容的word成品</p>
     </section>
 
     <section id="login-panel" class="panel hidden">
-      <div class="panel-header">
-        <h2>访问验证</h2>
-        <p>当前站点已启用单密码保护。</p>
-      </div>
+      <h2>访问验证</h2>
       <form id="login-form" class="stack">
         <label class="field">
           <span>访问密码</span>
@@ -30,43 +26,50 @@
     </section>
 
     <section id="composer-panel" class="panel hidden">
-      <div class="panel-header">
-        <h2>新建任务</h2>
-        <p id="limits-text">准备上传文件…</p>
-      </div>
-
       <form id="job-form" class="stack">
-        <label class="field">
-          <span>模板底图</span>
-          <input id="template-input" name="templateImage" type="file" accept=".png,.jpg,.jpeg,.gif,.bmp,.tif,.tiff" required>
-        </label>
-
-        <label class="field">
-          <span>旅游文档</span>
-          <input id="documents-input" name="documents" type="file" accept=".doc,.docx" multiple required>
-        </label>
-
-        <div class="selected-files">
-          <div>
-            <strong>当前模板</strong>
-            <p id="template-name" class="inline-note">未选择</p>
+        <div class="upload-block">
+          <div class="block-head">
+            <div>
+              <h2>模板底图</h2>
+              <p>仅支持选择 1 张模板图</p>
+            </div>
           </div>
-          <div>
-            <strong>文档列表</strong>
-            <ul id="documents-list" class="file-list"></ul>
-          </div>
+          <label class="picker" for="template-input">
+            <span class="picker-button">选择模板图</span>
+            <span id="template-name" class="picker-meta">未选择模板图</span>
+          </label>
+          <input id="template-input" name="templateImage" class="hidden-input" type="file" accept=".png,.jpg,.jpeg,.gif,.bmp,.tif,.tiff" required>
         </div>
 
-        <button id="submit-button" type="submit" class="primary-button">开始生成</button>
+        <div class="upload-block">
+          <div class="block-head">
+            <div>
+              <h2>旅游文档</h2>
+              <p>可一次选择多份 .doc / .docx</p>
+            </div>
+            <p id="documents-summary" class="summary-note">未选择文档</p>
+          </div>
+          <label class="picker" for="documents-input">
+            <span class="picker-button">选择文档</span>
+            <span class="picker-meta">支持批量选择，生成多个成品</span>
+          </label>
+          <input id="documents-input" name="documents[]" class="hidden-input" type="file" accept=".doc,.docx" multiple required>
+          <ul id="documents-list" class="file-list"></ul>
+        </div>
+
+        <div class="form-foot">
+          <p id="limits-text" class="inline-note">准备上传文件…</p>
+          <button id="submit-button" type="submit" class="primary-button">开始生成</button>
+        </div>
       </form>
       <p id="submit-error" class="message error hidden"></p>
     </section>
 
     <section id="job-panel" class="panel hidden">
-      <div class="panel-header">
+      <div class="result-head">
         <div>
-          <h2>任务结果</h2>
-          <p id="job-meta">尚未创建任务。</p>
+          <h2>当前任务</h2>
+          <p id="job-meta" class="inline-note">尚未创建任务。</p>
         </div>
         <a id="batch-download" class="secondary-link hidden" href="#" target="_blank" rel="noreferrer">下载整批 ZIP</a>
       </div>
@@ -76,7 +79,7 @@
       </div>
       <p id="job-status-text" class="inline-note">等待任务开始。</p>
 
-      <div id="results" class="results-grid"></div>
+      <div id="results" class="results-list"></div>
     </section>
   </main>
 

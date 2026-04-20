@@ -108,6 +108,7 @@ struct CreateJobForm: Content {
     enum CodingKeys: String, CodingKey {
         case templateImage
         case documents
+        case documentsArray = "documents[]"
     }
 
     init(templateImage: File, documents: [File]) {
@@ -118,11 +119,21 @@ struct CreateJobForm: Content {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         templateImage = try container.decode(File.self, forKey: .templateImage)
-        if let decodedArray = try? container.decode([File].self, forKey: .documents) {
+        if let decodedBracketArray = try? container.decode([File].self, forKey: .documentsArray), !decodedBracketArray.isEmpty {
+            documents = decodedBracketArray
+        } else if let decodedArray = try? container.decode([File].self, forKey: .documents), !decodedArray.isEmpty {
             documents = decodedArray
+        } else if let singleBracket = try? container.decode(File.self, forKey: .documentsArray) {
+            documents = [singleBracket]
         } else {
             documents = [try container.decode(File.self, forKey: .documents)]
         }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(templateImage, forKey: .templateImage)
+        try container.encode(documents, forKey: .documents)
     }
 }
 

@@ -1,4 +1,5 @@
 import Foundation
+import MultipartKit
 import Vapor
 
 struct AccessPasswordMiddleware: AsyncMiddleware {
@@ -55,7 +56,7 @@ func routes(_ app: Application) throws {
     let protected = app.grouped(AccessPasswordMiddleware(config: app.appConfig))
 
     protected.on(.POST, "api", "jobs", body: .collect(maxSize: "200mb")) { request async throws -> CreateJobResponse in
-        let payload = try request.content.decode(CreateJobForm.self)
+        let payload = try decodeCreateJobForm(from: request)
         try validate(templateFile: payload.templateImage, documents: payload.documents, config: request.application.appConfig)
 
         let jobID = try await request.application.jobStore.createJob(
@@ -82,6 +83,51 @@ func routes(_ app: Application) throws {
         let payload = try await request.application.jobStore.fileDownload(jobID: jobID, fileID: fileID)
         return makeDownloadResponse(for: payload)
     }
+}
+
+private func decodeCreateJobForm(from request: Request) throws -> CreateJobForm {
+    guard let boundary = request.headers.contentType?.parameters["boundary"] else {
+        throw Abort(.unsupportedMediaType, reason: "需要使用 multipart/form-data 上传文件。")
+    }
+
+    guard let body = request.body.data else {
+        throw Abort(.badRequest, reason: "请求体为空。")
+    }
+
+    let parser = MultipartParser(boundary: boundary)
+    var parts: [MultipartPart] = []
+    var currentHeaders: HTTPHeaders = .init()
+    var currentBody = ByteBuffer()
+
+    parser.onHeader = { field, value in
+        currentHeaders.replaceOrAdd(name: field, value: value)
+    }
+    parser.onBody = { chunk in
+        var chunk = chunk
+        currentBody.writeBuffer(&chunk)
+    }
+    parser.onPartComplete = {
+        parts.append(MultipartPart(headers: currentHeaders, body: currentBody))
+        currentHeaders = .init()
+        currentBody = ByteBuffer()
+    }
+
+    try parser.execute(body)
+
+    guard let templatePart = parts.firstPart(named: "templateImage"), let templateFile = File(multipart: templatePart) else {
+        throw Abort(.badRequest, reason: "缺少模板图。")
+    }
+
+    let documentParts = parts.filter { part in
+        part.name == "documents" || part.name == "documents[]"
+    }
+    let documents = documentParts.compactMap(File.init(multipart:))
+
+    guard documents.count == documentParts.count else {
+        throw Abort(.badRequest, reason: "文档上传数据无效。")
+    }
+
+    return CreateJobForm(templateImage: templateFile, documents: documents)
 }
 
 private func validate(templateFile: File, documents: [File], config: AppConfig) throws {

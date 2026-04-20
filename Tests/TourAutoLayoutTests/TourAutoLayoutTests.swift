@@ -1,7 +1,9 @@
 import Foundation
 import Testing
+import Vapor
 import ZIPFoundation
 @testable import TourAutoLayoutCore
+@testable import TourAutoLayoutWeb
 
 struct TourAutoLayoutTests {
     @Test
@@ -73,6 +75,55 @@ struct TourAutoLayoutTests {
         #expect(stylesXML.contains("CustomHeading"))
         #expect(headerXML.contains("cx=\"7560000\" cy=\"10692000\""))
         #expect(try archive.readData(at: "word/media/image1.png").isEmpty == false)
+    }
+
+    @Test
+    func createJobFormDecodesBracketedMultiDocuments() throws {
+        let boundary = "Boundary-\(UUID().uuidString)"
+        let payload = multipartBody(
+            boundary: boundary,
+            parts: [
+                MultipartPart(
+                    name: "templateImage",
+                    filename: "template.png",
+                    contentType: "image/png",
+                    data: pngData
+                ),
+                MultipartPart(
+                    name: "documents[]",
+                    filename: "sample1.docx",
+                    contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    data: try makeMinimalDocxData()
+                ),
+                MultipartPart(
+                    name: "documents[]",
+                    filename: "sample2.docx",
+                    contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    data: try makeMinimalDocxData()
+                ),
+            ]
+        )
+
+        let headers = HTTPHeaders([
+            ("Content-Type", "multipart/form-data; boundary=\(boundary)"),
+        ])
+        let application = Application(.testing)
+        defer { application.shutdown() }
+
+        let request = Request(
+            application: application,
+            method: .POST,
+            url: URI(path: "/api/jobs"),
+            version: .init(major: 1, minor: 1),
+            headers: headers,
+            collectedBody: ByteBuffer(data: payload),
+            on: application.eventLoopGroup.next()
+        )
+
+        let form = try request.content.decode(CreateJobForm.self)
+
+        #expect(form.documents.count == 2)
+        #expect(form.documents.map { $0.filename } == ["sample1.docx", "sample2.docx"])
     }
 
     private func makeFixtureDocx() throws -> URL {
@@ -178,6 +229,29 @@ struct TourAutoLayoutTests {
     private var pngData: Data {
         Data(base64Encoded: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wn0yt8AAAAASUVORK5CYII=")!
     }
+}
+
+private struct MultipartPart {
+    let name: String
+    let filename: String
+    let contentType: String
+    let data: Data
+}
+
+private func multipartBody(boundary: String, parts: [MultipartPart]) -> Data {
+    var body = Data()
+    let lineBreak = "\r\n"
+
+    for part in parts {
+        body.append(Data("--\(boundary)\(lineBreak)".utf8))
+        body.append(Data("Content-Disposition: form-data; name=\"\(part.name)\"; filename=\"\(part.filename)\"\(lineBreak)".utf8))
+        body.append(Data("Content-Type: \(part.contentType)\(lineBreak)\(lineBreak)".utf8))
+        body.append(part.data)
+        body.append(Data(lineBreak.utf8))
+    }
+
+    body.append(Data("--\(boundary)--\(lineBreak)".utf8))
+    return body
 }
 
 private struct MockDocumentConverter: DocumentConverting {

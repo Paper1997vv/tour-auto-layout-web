@@ -35,6 +35,7 @@ let package = Package(
             name: "TourAutoLayoutTests",
             dependencies: [
                 "TourAutoLayoutCore",
+                "TourAutoLayoutWeb",
                 "ZIPFoundation",
             ],
             path: "Tests/TourAutoLayoutTests"
