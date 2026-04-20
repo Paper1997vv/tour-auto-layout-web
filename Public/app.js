@@ -102,7 +102,6 @@ jobForm.addEventListener("submit", async (event) => {
 async function bootstrap() {
   const response = await fetch("/api/config");
   state.config = await response.json();
-  configureAnalytics(state.config);
 
   limitsText.textContent = `单次上传总大小建议不超过 ${state.config.maxUploadSizeMB}MB`;
 
@@ -116,36 +115,6 @@ async function bootstrap() {
   loginPanel.classList.add("hidden");
   composerPanel.classList.remove("hidden");
   jobPanel.classList.add("hidden");
-}
-
-function configureAnalytics(config) {
-  const existingScript = document.getElementById("analytics-script");
-  if (existingScript) {
-    existingScript.remove();
-  }
-
-  const host = normalizeAnalyticsHost(config.analyticsHost);
-  const websiteId = config.analyticsWebsiteId;
-
-  if (!host || !websiteId) {
-    return;
-  }
-
-  const script = document.createElement("script");
-  script.id = "analytics-script";
-  script.defer = true;
-  script.src = `${host}/script.js`;
-  script.setAttribute("data-website-id", websiteId);
-  document.head.appendChild(script);
-}
-
-function normalizeAnalyticsHost(host) {
-  if (!host || typeof host !== "string") {
-    return null;
-  }
-
-  const trimmed = host.trim().replace(/\/+$/, "");
-  return trimmed || null;
 }
 
 function renderSelectedDocuments() {

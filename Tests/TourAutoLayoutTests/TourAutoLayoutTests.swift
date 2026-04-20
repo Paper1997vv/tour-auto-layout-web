@@ -7,34 +7,6 @@ import ZIPFoundation
 
 struct TourAutoLayoutTests {
     @Test
-    func appConfigParsesAnalyticsEnvironment() throws {
-        let config = try AppConfig.fromEnvironment([
-            "PORT": "8088",
-            "STORAGE_ROOT": "/tmp/tour-auto-layout-tests",
-            "ANALYTICS_HOST": " https://umami.example.com/ ",
-            "ANALYTICS_WEBSITE_ID": " website-123 ",
-        ])
-
-        #expect(config.port == 8088)
-        #expect(config.storageRoot.path == "/tmp/tour-auto-layout-tests")
-        #expect(config.analyticsHost == "https://umami.example.com/")
-        #expect(config.analyticsWebsiteId == "website-123")
-    }
-
-    @Test
-    func appConfigLeavesAnalyticsDisabledWhenUnset() throws {
-        let config = try AppConfig.fromEnvironment([
-            "PORT": "8080",
-            "STORAGE_ROOT": "/tmp/tour-auto-layout-tests",
-            "ANALYTICS_HOST": "   ",
-            "ANALYTICS_WEBSITE_ID": "",
-        ])
-
-        #expect(config.analyticsHost == nil)
-        #expect(config.analyticsWebsiteId == nil)
-    }
-
-    @Test
     func normalizerConvertsDocIntoDocx() throws {
         let tempDirectory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: tempDirectory, withIntermediateDirectories: true)

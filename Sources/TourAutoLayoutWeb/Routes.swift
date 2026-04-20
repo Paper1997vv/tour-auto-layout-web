@@ -28,9 +28,7 @@ func routes(_ app: Application) throws {
             requiresPassword: request.application.appConfig.requiresPassword,
             authenticated: request.application.appConfig.accessSessionToken == nil
                 || request.cookies["tour_access"]?.string == request.application.appConfig.accessSessionToken,
-            maxUploadSizeMB: request.application.appConfig.maxUploadSizeMB,
-            analyticsHost: request.application.appConfig.analyticsHost,
-            analyticsWebsiteId: request.application.appConfig.analyticsWebsiteId
+            maxUploadSizeMB: request.application.appConfig.maxUploadSizeMB
         )
     }
 

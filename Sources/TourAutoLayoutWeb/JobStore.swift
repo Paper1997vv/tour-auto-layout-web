@@ -11,18 +11,13 @@ struct AppConfig: Sendable {
     let publicBaseURL: String?
     let accessPassword: String?
     let accessSessionToken: String?
-    let analyticsHost: String?
-    let analyticsWebsiteId: String?
 
     var requiresPassword: Bool {
         !(accessPassword ?? "").isEmpty
     }
 
     static func fromEnvironment() throws -> AppConfig {
-        try fromEnvironment(ProcessInfo.processInfo.environment)
-    }
-
-    static func fromEnvironment(_ environment: [String: String]) throws -> AppConfig {
+        let environment = ProcessInfo.processInfo.environment
         let port = Int(environment["PORT"] ?? "") ?? 8080
         let maxConcurrentJobs = max(1, Int(environment["MAX_CONCURRENT_JOBS"] ?? "") ?? 3)
         let maxUploadSizeMB = max(10, Int(environment["MAX_UPLOAD_SIZE_MB"] ?? "") ?? 80)
@@ -30,8 +25,6 @@ struct AppConfig: Sendable {
         let publicBaseURL = environment["PUBLIC_BASE_URL"]
         let rawPassword = environment["ACCESS_PASSWORD"]?.trimmingCharacters(in: .whitespacesAndNewlines)
         let password = (rawPassword?.isEmpty == false) ? rawPassword : nil
-        let analyticsHost = normalizedOptionalEnvironmentValue(environment["ANALYTICS_HOST"])
-        let analyticsWebsiteId = normalizedOptionalEnvironmentValue(environment["ANALYTICS_WEBSITE_ID"])
 
         return AppConfig(
             port: port,
@@ -40,9 +33,7 @@ struct AppConfig: Sendable {
             maxUploadSizeMB: maxUploadSizeMB,
             publicBaseURL: publicBaseURL,
             accessPassword: password,
-            accessSessionToken: password == nil ? nil : UUID().uuidString,
-            analyticsHost: analyticsHost,
-            analyticsWebsiteId: analyticsWebsiteId
+            accessSessionToken: password == nil ? nil : UUID().uuidString
         )
     }
 
@@ -100,19 +91,10 @@ struct AppConfigResponse: Content {
     let requiresPassword: Bool
     let authenticated: Bool
     let maxUploadSizeMB: Int
-    let analyticsHost: String?
-    let analyticsWebsiteId: String?
 }
 
 struct LoginRequest: Content {
     let password: String
-}
-
-private func normalizedOptionalEnvironmentValue(_ value: String?) -> String? {
-    guard let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty else {
-        return nil
-    }
-    return trimmed
 }
 
 struct LoginResponse: Content {
