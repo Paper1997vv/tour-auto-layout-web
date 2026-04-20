@@ -33,6 +33,8 @@ swift run TourAutoLayoutWeb
 - `PUBLIC_BASE_URL`
 - `ACCESS_PASSWORD`
 - `LIBREOFFICE_PATH`
+- `ANALYTICS_HOST`
+- `ANALYTICS_WEBSITE_ID`
 
 ## Docker 部署
 
@@ -66,3 +68,18 @@ swift test
 - GitHub 负责托管代码仓库，不直接承载运行服务。
 - 若需要公网访问，请把仓库部署到支持 Docker 的服务器或平台，例如 VPS、Railway、Render、Fly.io。
 - 若启用 `ACCESS_PASSWORD`，页面会先要求输入访问密码，然后才能创建和下载任务。
+- 若要接入独立访问统计，可配置：
+  - `ANALYTICS_HOST`：Umami 服务地址，例如 `https://umami-xxx.zeabur.app`
+  - `ANALYTICS_WEBSITE_ID`：Umami 后台为当前站点生成的 website id
+- 当以上两个变量都存在时，前端会自动加载 Umami 统计脚本；未配置时网站功能不受影响。
+
+## 独立访问统计
+
+- 推荐把 Umami 独立部署为单独服务，并配一套独立 PostgreSQL。
+- 当前业务站点只负责读取：
+  - `ANALYTICS_HOST`
+  - `ANALYTICS_WEBSITE_ID`
+- 后续有新网站需要统计时：
+  - 先在同一套 Umami 后台新增 website
+  - 再给新网站配置各自的 `ANALYTICS_HOST` 和 `ANALYTICS_WEBSITE_ID`
+- 这样可以复用同一套统计后台，不需要每个网站都重新部署分析系统。
